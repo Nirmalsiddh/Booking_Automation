@@ -1,0 +1,3355 @@
+{
+  "name": "Fitness Studio WhatsApp Booking Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whapi-inbound",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4304,
+        576
+      ],
+      "id": "43b03652-f770-4ea0-bec1-cee15ed359fe",
+      "name": "Webhook - WHAPI Inbound",
+      "webhookId": "whapi-inbound-apex-001"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "wa-01",
+              "name": "Lead_Name",
+              "value": "={{ ($json.body.messages && $json.body.messages[0] && $json.body.messages[0].from_name) ? $json.body.messages[0].from_name : 'WhatsApp User' }}",
+              "type": "string"
+            },
+            {
+              "id": "wa-02",
+              "name": "Lead_Phone",
+              "value": "={{ ($json.body.messages && $json.body.messages[0]) ? $json.body.messages[0].from : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "wa-03",
+              "name": "Lead_Message",
+              "value": "={{ ($json.body.messages && $json.body.messages[0] && $json.body.messages[0].text && $json.body.messages[0].text.body) ? $json.body.messages[0].text.body : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "wa-04",
+              "name": "Lead_Source",
+              "value": "Whatsapp",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4080,
+        400
+      ],
+      "id": "d7ca3471-52e3-464d-984e-e59bc1646798",
+      "name": "Format - WhatsApp"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mf-01",
+              "name": "Lead_Name",
+              "value": "Test User Meta",
+              "type": "string"
+            },
+            {
+              "id": "mf-02",
+              "name": "Lead_Phone",
+              "value": "919999999991",
+              "type": "string"
+            },
+            {
+              "id": "mf-03",
+              "name": "Lead_Message",
+              "value": "Hi, I want to know about the gym membership pricing",
+              "type": "string"
+            },
+            {
+              "id": "mf-04",
+              "name": "Lead_Source",
+              "value": "Meta Form",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4080,
+        592
+      ],
+      "id": "2243a60a-2fb0-43e3-9776-55fdf9c7c2ac",
+      "name": "Test - Meta Form"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ig-01",
+              "name": "Lead_Name",
+              "value": "Test User Instagram",
+              "type": "string"
+            },
+            {
+              "id": "ig-02",
+              "name": "Lead_Phone",
+              "value": "919999999992",
+              "type": "string"
+            },
+            {
+              "id": "ig-03",
+              "name": "Lead_Message",
+              "value": "Hey, interested in personal training sessions",
+              "type": "string"
+            },
+            {
+              "id": "ig-04",
+              "name": "Lead_Source",
+              "value": "Instagram",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4080,
+        768
+      ],
+      "id": "7d006a69-befd-4a67-a4a8-35b91a01564a",
+      "name": "Test - Instagram"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -3840,
+        576
+      ],
+      "id": "b3322035-026d-46c2-88a4-3155d36b4de4",
+      "name": "Merge - All Sources"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=Phone",
+              "lookupValue": "={{ $json.Lead_Phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3680,
+        576
+      ],
+      "id": "4501883a-d419-4624-ac15-8437e151bdc0",
+      "name": "Check - Existing Lead",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract existing booking data from sheet lookup result\n// This node runs right after Check - Existing Lead and prepares context\n// for the AI and all downstream nodes\n\nconst sheetRow = $input.item.json;\n\n// Check if this is an existing lead (Phone field returned from sheet)\nconst isExistingLead = !!(sheetRow && sheetRow.Phone);\n\nconst isFreshLead = !isExistingLead;\n// Spread all sheet columns through (keeps Lead_Status, Booking_Status etc for Switch)\nreturn {\n  ...sheetRow,\n  existing_lead_status: sheetRow.Lead_Status || '',\n  existing_booking_status: sheetRow.Booking_Status || '',\n  existing_calendar_event_id: sheetRow.Calendar_Event_ID || '',\n  is_existing_lead: isExistingLead,\n  is_fresh_lead: isFreshLead  // \u2190 NEW flag\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3504,
+        576
+      ],
+      "id": "848377d4-6d29-4de0-ba19-94fca7c7570b",
+      "name": "Code - Prepare Context"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Lead_Status }}",
+                    "rightValue": "Not Interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2e8ed1a8-6187-4c7d-8a04-aa8cb92f8411"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b3f5f748-6c4f-48dc-ab84-c1caf28f0303",
+                    "leftValue": "={{ $json.Lead_Status }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d342958c-20ab-4192-8333-e8fcc03c1f1c",
+                    "leftValue": "={{ $json.Lead_Status }}",
+                    "rightValue": "Not Interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3344,
+        576
+      ],
+      "id": "2a0c5795-161b-45fb-bd3f-b5266b2ea932",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Merge - All Sources').item.json.Lead_Message }}",
+        "options": {
+          "systemMessage": "=- Fresh Lead (No Sheet Record): {{ $('Code - Prepare Context').item.json.is_fresh_lead }}\n*CRITICAL: If Fresh Lead is TRUE, ignore any previous conversation context \ncompletely. Treat this as a brand new lead with zero history. \nStart from scratch \u2014 do not reference any past bookings.*\n\nYou are the AI Sales Agent for a boutique fitness studio, acting as a WhatsApp front desk coordinator in Dubai. Your ONLY goal is to convert leads into confirmed in-gym assessment bookings.\n\nCURRENT SYSTEM CONTEXT:\n- Today's Date & Time: {{ new Date().toISOString() }}\n*CRITICAL: Use this current date as your baseline. Whenever a user uses relative terms like \"today\", \"tomorrow\", \"next Monday\", etc., you MUST calculate and output the exact YYYY-MM-DD based on this date.*\n- Existing Booking Status: {{ $('Code - Prepare Context').item.json.existing_booking_status || 'None' }}\n- Existing Calendar Event ID: {{ $('Code - Prepare Context').item.json.existing_calendar_event_id || 'None' }}\n\n*IMPORTANT: If Existing Booking Status is \"Confirmed - Calendar Created\" or \"Rescheduled - Calendar Updated\", the lead already has a confirmed booking. In this case, ONLY accept Reschedule or Cancel Booking intents. Do NOT create a new Booking Pending for confirmed leads.*\n\nGYM INFO:\n- Membership: Starting from AED 299/month\n- Hours: 6 AM - 11 PM daily\n- Services: Personal training, weight training, cardio, group classes\n- Location: Dubai\n\nCLASSIFICATION RULES:\nClassify each message into exactly one category:\n- \"Interested\": Lead is warm but hasn't given date/time yet\n- \"Booking Pending\": Lead has given BOTH a preferred date AND time \u2014 trigger calendar booking (only if NOT already confirmed)\n- \"Needs Info\": Lead has questions before deciding\n- \"Not Interested\": Lead clearly not interested\n- \"Reschedule\": Lead with an EXISTING confirmed booking wants to change their date/time. They must provide BOTH new date AND new time.\n- \"Cancel Booking\": Lead with an EXISTING confirmed booking wants to cancel their appointment entirely.\n\nQUALIFICATION \u2014 Ask ONLY for what is missing, one question at a time:\n1. Full name (if unknown)\n2. Email\n3. Fitness goal\n4. Experience level (beginner / intermediate / advanced)\n5. Any injuries or medical limitations\n6. Preferred assessment date and time\n\nBOOKING LOGIC:\n- Once the lead shows interest, guide them toward booking an in-gym assessment\n- Ask for preferred date and time\n- When BOTH are given (and lead is NOT already confirmed), set category to \"Booking Pending\"\n- For Reschedule: ask for new date AND time. When BOTH provided, set category to \"Reschedule\"\n- For Cancel Booking: confirm their intent, then set category to \"Cancel Booking\"\n- booking_date format MUST BE: YYYY-MM-DD (calculated correctly from the CURRENT SYSTEM CONTEXT)\n- booking_time format MUST BE: HH:MM (24h)\n\n\nSALES BEHAVIOUR:\n- Your objective is to move qualified leads toward booking a trial session confidently and efficiently\n- Use light urgency naturally: mention limited slots or coach availability when guiding toward a date\n- Always steer the conversation toward confirming a date and time \u2014 every reply should move closer to a booking\n- Do not hard sell, do not negotiate pricing, do not make promises beyond the trial booking\n- If a lead is hesitating, acknowledge briefly then redirect: \"We have a slot open this week \u2014 shall I hold one for you?\"\n- Focus only on securing the trial booking \u2014 nothing else matters until that is confirmed\n- When a lead shows any interest, immediately move to slot availability \n  \u2014 do not wait until all qualification questions are answered\n- Use assumed close: instead of asking IF they want to book, ask WHEN \n  \u2014 \"Which works better, a weekday morning or evening?\"\n- Mention slot scarcity naturally once per conversation: \n  \"We only have a couple of assessment slots open this week\"\n- Increase reply limit to 45 words \u2014 enough to acknowledge, create \n  pull, and ask for the date in one clean message\n\nCOMMUNICATION STYLE:\n- Professional, polite, confident, short and direct\n- Dubai business tone\n- Max 30 words per reply\n- 1-2 emojis maximum\n- Never give workout plans, fitness assessments, or negotiate pricing\n- Never double-book\n\nOUTPUT RULES:\n- Respond ONLY with a valid JSON object\n- No markdown, no code blocks, no preamble\n- collected_data fields: only fill what was just provided in this message, leave others null\n\nJSON FORMAT:\n{\n  \"category\": \"Interested\" | \"Booking Pending\" | \"Needs Info\" | \"Not Interested\" | \"Reschedule\" | \"Cancel Booking\",\n  \"reply\": \"Your short message here.\",\n  \"booking_date\": \"YYYY-MM-DD or null\",\n  \"booking_time\": \"HH:MM or null\",\n  \"collected_data\": {\n    \"email\": \"value or null\",\n    \"goal\": \"value or null\",\n    \"experience\": \"beginner/intermediate/advanced or null\",\n    \"injuries\": \"value or null\"\n  }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -3200,
+        576
+      ],
+      "id": "efc320a2-e424-4de6-9080-e354763b000d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3200,
+        896
+      ],
+      "id": "cfae4e53-8503-4940-b850-e0b7f92eb31d",
+      "name": "Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TaKS6TF5I28ci4bK",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Code - Prepare Context').item.json.is_fresh_lead \n   ? $('Merge - All Sources').item.json.Lead_Phone + '_' + new Date().toDateString() \n   : $('Merge - All Sources').item.json.Lead_Phone }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -3056,
+        896
+      ],
+      "id": "e26c1633-80e7-4ac8-8694-39d4e21886e6",
+      "name": "Memory - Per Phone"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safely parse AI output and merge with existing lead data\nconst raw = $input.item.json.output || '';\nlet parsed;\n\ntry {\n  // Strip any accidental markdown fences\n  const cleaned = raw.replace(/```json|```/gi, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  // Fallback if JSON parse fails\n  parsed = {\n    category: 'Needs Info',\n    reply: 'Sorry, I had a small issue. Could you please repeat that? \ud83d\ude4f',\n    booking_date: null,\n    booking_time: null,\n    collected_data: { email: null, goal: null, experience: null, injuries: null }\n  };\n}\n\n// Validate required fields\nconst validCategories = ['Interested', 'Booking Pending', 'Needs Info', 'Not Interested', 'Reschedule', 'Cancel Booking'];\nif (!validCategories.includes(parsed.category)) {\n  parsed.category = 'Needs Info';\n}\n\n// Safety check: only set Booking Pending if BOTH date and time are present\nif (parsed.category === 'Booking Pending') {\n  if (!parsed.booking_date || !parsed.booking_time ||\n      parsed.booking_date === 'null' || parsed.booking_time === 'null') {\n    parsed.category = 'Interested';\n    parsed.booking_date = null;\n    parsed.booking_time = null;\n  }\n}\n\n// ANTI-REBOOK GUARD:\n// If lead already has a confirmed booking and AI tries to create a new one,\n// block it. This prevents auto-rebook when sheet data is manually edited.\nconst existingBookingStatus = $('Code - Prepare Context').item.json.existing_booking_status || '';\nconst isConfirmed = existingBookingStatus === 'Confirmed - Calendar Created' || existingBookingStatus === 'Rescheduled - Calendar Updated';\nif (isConfirmed && parsed.category === 'Booking Pending') {\n  parsed.category = 'Interested';\n  parsed.reply = 'You already have a confirmed booking! To change it, just let me know your new preferred date and time. \ud83d\udcc5';\n}\n\n// Safety check: Reschedule needs BOTH new date and time\nif (parsed.category === 'Reschedule') {\n  if (!parsed.booking_date || !parsed.booking_time ||\n      parsed.booking_date === 'null' || parsed.booking_time === 'null') {\n    parsed.category = 'Interested';\n    parsed.booking_date = null;\n    parsed.booking_time = null;\n  }\n}\n\n// Build the WhatsApp-ready phone (add country code if missing)\nconst rawPhone = ($('Merge - All Sources').item.json.Lead_Phone || '').replace(/^=/, '');\n\nreturn {\n  category: parsed.category,\n  reply: parsed.reply || '',\n  booking_date: parsed.booking_date || null,\n  booking_time: parsed.booking_time || null,\n  collected_email: (parsed.collected_data && parsed.collected_data.email) ? parsed.collected_data.email : null,\n  collected_goal: (parsed.collected_data && parsed.collected_data.goal) ? parsed.collected_data.goal : null,\n  collected_experience: (parsed.collected_data && parsed.collected_data.experience) ? parsed.collected_data.experience : null,\n  collected_injuries: (parsed.collected_data && parsed.collected_data.injuries) ? parsed.collected_data.injuries : null,\n  Lead_Phone: rawPhone,\n  Lead_Name: $('Merge - All Sources').item.json.Lead_Name,\n  Lead_Source: $('Merge - All Sources').item.json.Lead_Source,\n  whapi_to: rawPhone + '@s.whatsapp.net',\n  existing_calendar_event_id: $('Code - Prepare Context').item.json.existing_calendar_event_id || ''\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2912,
+        576
+      ],
+      "id": "ffbf3b65-725b-42c5-ac75-66b39254e693",
+      "name": "Code - Safe Parse & Prep"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-01",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Booking Pending",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-02",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-03",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Not Interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-04",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Needs Info",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-05",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Reschedule",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-06",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "Cancel Booking",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "sw-07",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2720,
+        576
+      ],
+      "id": "36965306-58d1-4471-b71b-484c63277bf8",
+      "name": "Switch - Category Router"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Merge - All Sources').item.json.Lead_Name }}",
+            "Phone": "={{ $json.Lead_Phone }}",
+            "Email": "={{ $json.collected_email }}",
+            "Source": "={{ $json.Lead_Source }}",
+            "Goal": "={{ $json.collected_goal }}",
+            "Experience": "={{ $json.collected_experience }}",
+            "Injuries": "={{ $json.collected_injuries }}",
+            "Lead_Status": "Booking Pending",
+            "Booking_Status": "Pending Confirmation",
+            "Booking_Date": "={{ $json.booking_date }}",
+            "Booking_Time": "={{ $json.booking_time }}",
+            "Last_Updated": "={{ new Date().toISOString() }}",
+            "Calendar_Event_ID": "={{ $json.existing_calendar_event_id }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        288
+      ],
+      "id": "4d00b293-b75d-46a4-887e-deda16b1bc67",
+      "name": "Sheet - Upsert Booking Pending",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-01",
+              "leftValue": "={{ $('Code - Safe Parse & Prep').item.json.existing_calendar_event_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2240,
+        288
+      ],
+      "id": "8de3a606-bb4d-4c7d-92bb-65260c98422b",
+      "name": "IF - Has Calendar Event"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "your_calendar_id@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)"
+        },
+        "eventId": "={{ $('Code - Safe Parse & Prep').item.json.existing_calendar_event_id }}",
+        "updateFields": {
+          "description": "=Lead: {{ $('Merge - All Sources').item.json.Lead_Name }}\nPhone: {{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}\nSource: {{ $('Merge - All Sources').item.json.Lead_Source }}\nGoal: {{ $('Code - Safe Parse & Prep').item.json.collected_goal || 'Not captured yet' }}",
+          "end": "={{ DateTime.fromISO($('Code - Safe Parse & Prep').item.json.booking_date + 'T' + $('Code - Safe Parse & Prep').item.json.booking_time + ':00').plus({ hours: 1 }).toISO() }}",
+          "start": "={{ $('Code - Safe Parse & Prep').item.json.booking_date }}T{{ $('Code - Safe Parse & Prep').item.json.booking_time }}:00",
+          "summary": "=Gym Assessment - {{ $('Merge - All Sources').item.json.Lead_Name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -2000,
+        112
+      ],
+      "id": "8a37da90-1904-432b-acc5-8c78be721bf8",
+      "name": "Calendar - Update Assessment",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bSDqT27mvVrMyaK1",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "your_calendar_id@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)"
+        },
+        "start": "={{ $('Code - Safe Parse & Prep').item.json.booking_date }}T{{ $('Code - Safe Parse & Prep').item.json.booking_time }}:00",
+        "end": "={{ DateTime.fromISO($('Code - Safe Parse & Prep').item.json.booking_date + 'T' + $('Code - Safe Parse & Prep').item.json.booking_time + ':00').plus({ hours: 1 }).toISO() }}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "=Lead: {{ $('Merge - All Sources').item.json.Lead_Name }}\nPhone: {{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}\nSource: {{ $('Merge - All Sources').item.json.Lead_Source }}\nGoal: {{ $('Code - Safe Parse & Prep').item.json.collected_goal || 'Not captured yet' }}",
+          "summary": "=Gym Assessment - {{ $('Merge - All Sources').item.json.Lead_Name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -2000,
+        304
+      ],
+      "id": "a458396e-82d7-49cc-ba53-717a09439fa0",
+      "name": "Calendar - Create Assessment",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bSDqT27mvVrMyaK1",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1744,
+        288
+      ],
+      "id": "b1436c7a-3d1e-430b-82a6-964e73f5a833",
+      "name": "Merge - Calendar Result"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Booking_Status": "Confirmed - Calendar Created",
+            "Lead_Status": "Booking Confirmed",
+            "Calendar_Event_ID": "={{ $json.id }}",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1520,
+        288
+      ],
+      "id": "a8c38d8a-cb99-4a4e-bd68-05f7f67f4a6b",
+      "name": "Sheet - Mark Booking Confirmed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $('Code - Safe Parse & Prep').item.json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1280,
+        288
+      ],
+      "id": "aa7488c4-3005-40aa-92e2-a3f87ea31048",
+      "name": "WHAPI - Send Booking Confirmation",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Merge - All Sources').item.json.Lead_Name }}",
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Email": "={{ $('Code - Safe Parse & Prep').item.json.collected_email }}",
+            "Source": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Source }}",
+            "Goal": "={{ $('Code - Safe Parse & Prep').item.json.collected_goal }}",
+            "Experience": "={{ $('Code - Safe Parse & Prep').item.json.collected_experience }}",
+            "Injuries": "={{ $('Code - Safe Parse & Prep').item.json.collected_injuries }}",
+            "Lead_Status": "Interested",
+            "Booking_Status": "Awaiting Date",
+            "Last_Updated": "={{ new Date().toISOString() }}",
+            "Booking_Date": "={{ $('Code - Safe Parse & Prep').item.json.booking_date }}",
+            "Booking_Time": "={{ $('Code - Safe Parse & Prep').item.json.booking_time }}",
+            "Calendar_Event_ID": "={{ $json.existing_calendar_event_id }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        480
+      ],
+      "id": "e895e6f7-e8de-45e2-9aed-6b43585a4c95",
+      "name": "Sheet - Upsert Interested",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $('Code - Safe Parse & Prep').item.json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2240,
+        480
+      ],
+      "id": "7d14dba3-22c6-4db9-b1c3-6a5da7a2bf42",
+      "name": "WHAPI - Send Interested Reply",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2000,
+        480
+      ],
+      "id": "f4cc21ce-dd7a-48b4-95d1-664d90b0742f",
+      "name": "Wait - 24h (Interested)",
+      "webhookId": "wait-24h-interested-001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('Code - Safe Parse & Prep').item.json.whapi_to }}\",\n  \"body\": \"Hey, we still have a couple of trial slots open this week. Takes only an hour \u2014 which day works for you?\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1760,
+        480
+      ],
+      "id": "35ae8570-6634-4003-ae7b-1f60786408f5",
+      "name": "WHAPI - Follow-up 1 (Interested)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1520,
+        480
+      ],
+      "id": "6773b792-64f4-4496-a5a1-76a9d5e46c31",
+      "name": "Wait - 48h (After Follow-up 1)",
+      "webhookId": "wait-48h-interested-002"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Lead_Status": "Requires Manual Call",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1280,
+        480
+      ],
+      "id": "4575c163-f674-4b6f-bc0f-adc7cc51144d",
+      "name": "Sheet - Flag Manual Call",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Merge - All Sources').item.json.Lead_Name }}",
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Source": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Source }}",
+            "Lead_Status": "Not Interested",
+            "Booking_Status": "Closed",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        688
+      ],
+      "id": "5d005eae-d44c-4980-b4c1-ae43217b3f4c",
+      "name": "Sheet - Upsert Not Interested",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('Code - Safe Parse & Prep').item.json.whapi_to }}\",\n  \"body\": \"No problem at all! \ud83d\ude4f If you ever change your mind or want to explore your fitness goals, we're always here for you. Have a great day!\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2240,
+        688
+      ],
+      "id": "41098635-a1bc-42ab-81f3-9e1f210a838a",
+      "name": "WHAPI - Send Closing Message",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Merge - All Sources').item.json.Lead_Name }}",
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Email": "={{ $('Code - Safe Parse & Prep').item.json.collected_email }}",
+            "Source": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Source }}",
+            "Goal": "={{ $('Code - Safe Parse & Prep').item.json.collected_goal }}",
+            "Experience": "={{ $('Code - Safe Parse & Prep').item.json.collected_experience }}",
+            "Injuries": "={{ $('Code - Safe Parse & Prep').item.json.collected_injuries }}",
+            "Lead_Status": "Needs Info",
+            "Booking_Status": "Not Started",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        880
+      ],
+      "id": "f38dec90-1d96-4483-a3b6-c0361de9f15d",
+      "name": "Sheet - Upsert Needs Info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $('Code - Safe Parse & Prep').item.json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2240,
+        880
+      ],
+      "id": "3f9b34db-8073-4bee-8595-215f748798ae",
+      "name": "WHAPI - Send Info Reply",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2000,
+        880
+      ],
+      "id": "303a76c1-a754-4b3e-8aea-5a290bd772b7",
+      "name": "Wait - 24h (Needs Info)",
+      "webhookId": "wait-24h-needsinfo-001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('Code - Safe Parse & Prep').item.json.whapi_to }}\",\n  \"body\": \"Hey, still happy to answer anything. Most people just come in for the free trial and decide after \u2014 want to lock in a slot?\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1760,
+        880
+      ],
+      "id": "03329ed9-5fee-4b68-ab64-424742904235",
+      "name": "WHAPI - Follow-up (Needs Info)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1520,
+        880
+      ],
+      "id": "61642f75-bdca-46c4-b58b-aaa37b917153",
+      "name": "Wait - 48h (After Needs Info F/U)",
+      "webhookId": "wait-48h-needsinfo-002"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Lead_Status": "Required Manual Call",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1280,
+        880
+      ],
+      "id": "9ffd8a20-7f01-4458-a927-43d8363a9268",
+      "name": "Sheet - Flag Follow Up Required",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.Lead_Phone }}",
+            "Lead_Status": "Reschedule Requested",
+            "Booking_Status": "Reschedule Pending",
+            "Booking_Date": "={{ $json.booking_date }}",
+            "Booking_Time": "={{ $json.booking_time }}",
+            "Last_Updated": "={{ new Date().toISOString() }}",
+            "Calendar_Event_ID": "={{ $json.existing_calendar_event_id }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        1072
+      ],
+      "id": "a83fe391-5680-435a-b377-73755e1bb555",
+      "name": "Sheet - Upsert Reschedule",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "your_calendar_id@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)"
+        },
+        "eventId": "={{ $('Code - Safe Parse & Prep').item.json.existing_calendar_event_id }}",
+        "updateFields": {
+          "description": "=Lead: {{ $('Merge - All Sources').item.json.Lead_Name }}\nPhone: {{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}\nSource: {{ $('Merge - All Sources').item.json.Lead_Source }}\nGoal: {{ $('Code - Safe Parse & Prep').item.json.collected_goal || 'Not captured yet' }}",
+          "end": "={{ DateTime.fromISO($('Code - Safe Parse & Prep').item.json.booking_date + 'T' + $('Code - Safe Parse & Prep').item.json.booking_time + ':00').plus({ hours: 1 }).toISO() }}",
+          "start": "={{ $('Code - Safe Parse & Prep').item.json.booking_date }}T{{ $('Code - Safe Parse & Prep').item.json.booking_time }}:00",
+          "summary": "=Gym Assessment - {{ $('Merge - All Sources').item.json.Lead_Name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -2240,
+        1072
+      ],
+      "id": "f2ecdd70-f605-4a83-9cd2-8600a9f27206",
+      "name": "Calendar - Update Reschedule",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bSDqT27mvVrMyaK1",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Lead_Status": "Booking Confirmed",
+            "Booking_Status": "Rescheduled - Calendar Updated",
+            "Calendar_Event_ID": "={{ $json.id }}",
+            "Last_Updated": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2000,
+        1072
+      ],
+      "id": "776ce512-52ce-4084-9af1-9498f94ff39f",
+      "name": "Sheet - Mark Rescheduled",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $('Code - Safe Parse & Prep').item.json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1760,
+        1072
+      ],
+      "id": "85e8f5d2-69dc-4725-8a03-b87c68a44e3b",
+      "name": "WHAPI - Send Reschedule Confirmation",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "your_calendar_id@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)"
+        },
+        "eventId": "={{ $('Code - Safe Parse & Prep').item.json.existing_calendar_event_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -2480,
+        1264
+      ],
+      "id": "862bda40-d795-44ee-ba1d-b8bf46097fb6",
+      "name": "Calendar - Delete Assessment",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bSDqT27mvVrMyaK1",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Fitness Studio (Client)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Code - Safe Parse & Prep').item.json.Lead_Phone }}",
+            "Lead_Status": "Cancelled",
+            "Booking_Status": "Cancelled",
+            "Last_Updated": "={{ new Date().toISOString() }}",
+            "Calendar_Event_ID": "="
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Goal",
+              "displayName": "Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Injuries",
+              "displayName": "Injuries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead_Status",
+              "displayName": "Lead_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Status",
+              "displayName": "Booking_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Date",
+              "displayName": "Booking_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Booking_Time",
+              "displayName": "Booking_Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendar_Event_ID",
+              "displayName": "Calendar_Event_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2240,
+        1264
+      ],
+      "id": "1aedd157-970c-4e40-b59e-3652d12e1741",
+      "name": "Sheet - Mark Cancelled",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OCxgLScUpv5x0ChK",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $('Code - Safe Parse & Prep').item.json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2000,
+        1264
+      ],
+      "id": "23d422ca-6a41-4b05-a89b-f755b1d436c0",
+      "name": "WHAPI - Send Cancellation Message",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fb-01",
+              "name": "reply",
+              "value": "Hi! Sorry, I didn't quite catch that. Could you please repeat? \ud83d\ude4f",
+              "type": "string"
+            },
+            {
+              "id": "fb-02",
+              "name": "category",
+              "value": "Needs Info",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2704,
+        960
+      ],
+      "id": "629d2d28-74b2-448e-93ba-fb9054023bb8",
+      "name": "Fallback - Unknown Category",
+      "notes": "BUG FIX: Catches any unknown/null AI category so user always gets a reply and execution doesn't silently drop."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gate.whapi.cloud/messages/text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $('Code - Safe Parse & Prep').item.json.whapi_to, body: $json.reply }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2704,
+        1184
+      ],
+      "id": "0d62d7ce-dc4c-4cf5-a1ab-cee084e44e0f",
+      "name": "WHAPI - Send Fallback Reply",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BTUaL1SspSqN6oT3",
+          "name": "WHAPI Bearer Token"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "BUG FIX: Sends generic fallback reply when AI returns unexpected category."
+    },
+    {
+      "parameters": {
+        "jsCode": "// \u2500\u2500 WHAPI Payload Normalizer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Handles all 4 real event types WHAPI sends to the same webhook URL:\n//   1. Delivery receipt  \u2192 body.statuses[]   (no messages key at all)\n//   2. Read receipt      \u2192 body.statuses[]   (no messages key at all)\n//   3. Bot echo          \u2192 messages[0].from_me = true\n//   4. Real user message \u2192 messages[0].from_me = false \u2705\n\nconst body = $input.item.json.body || {};\n\n// \u2500\u2500 GUARD 1: Status/receipt events (statuses array, no messages) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif (body.statuses && body.statuses.length > 0) {\n  return [{ json: { _skip: true, _reason: 'delivery_or_read_receipt', _status: body.statuses[0].status || 'unknown' } }];\n}\n\n// \u2500\u2500 GUARD 2: No messages array at all (call events, group events, etc.) \u2500\u2500\u2500\nif (!body.messages || body.messages.length === 0) {\n  return [{ json: { _skip: true, _reason: 'no_messages_array' } }];\n}\n\nconst msg = body.messages[0];\n\n// \u2500\u2500 GUARD 3: Bot echo - our own sent messages bouncing back \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif (msg.from_me === true) {\n  return [{ json: { _skip: true, _reason: 'bot_echo_from_me_true' } }];\n}\n\n// \u2500\u2500 GUARD 4: Extract text from all possible WHAPI message formats \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet text = null;\nlet msgType = msg.type || 'unknown';\n\nif (msg.text && msg.text.body)             text = msg.text.body;\nelse if (msg.caption)                      text = msg.caption;\nelse if (msg.image && msg.image.caption)   text = msg.image.caption;\nelse if (msg.video && msg.video.caption)   text = msg.video.caption;\nelse if (msg.document && msg.document.caption) text = msg.document.caption;\nelse if (msg.reaction && msg.reaction.text)    text = msg.reaction.text;\nelse if (msg.body && typeof msg.body === 'string') text = msg.body;\n\n// \u2500\u2500 GUARD 5: Non-text messages (voice notes, stickers, location, etc.) \u2500\u2500\u2500\u2500\nif (!text) {\n  // Still pass through but with a polite fallback message so user gets a reply\n  text = '[Non-text message - please reply with text \ud83d\ude4f]';\n}\n\n// \u2500\u2500 PASS: Normalized lead data - always the same shape downstream \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst phone = (msg.from || '').replace('@s.whatsapp.net', '').replace(/\\D/g, '');\n\nreturn [{ json: {\n  _skip: false,\n  _msg_type: msgType,\n  Lead_Name: msg.from_name || msg.push_name || phone || 'WhatsApp User',\n  Lead_Phone: phone,\n  Lead_Message: text,\n  Lead_Source: 'Whatsapp'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4288,
+        400
+      ],
+      "id": "e420ee13-7e2d-4d84-aa63-8aefb3ed4565",
+      "name": "Normalizer - WHAPI Payload",
+      "notes": "Handles all WHAPI event types: delivery receipts (statuses[]), bot echoes (from_me=true), media messages, and real user texts. Always outputs the same Lead_Name/Lead_Phone/Lead_Message shape."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sk-01",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4080,
+        240
+      ],
+      "id": "6cf61a4e-b83e-48b5-8502-e81fba76be4f",
+      "name": "IF - Real User Message",
+      "notes": "Routes: TRUE (false _skip) = real message \u2192 continue | FALSE (true _skip) = receipt/echo \u2192 stop"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -4288,
+        240
+      ],
+      "id": "073463ab-3370-40ac-96ca-dc069ce3f27c",
+      "name": "Stop - Receipt or Echo",
+      "notes": "Silently absorbs delivery receipts, read receipts, and bot echo events. No action needed."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Test - Meta Form": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Test - Instagram": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge - All Sources": {
+      "main": [
+        [
+          {
+            "node": "Check - Existing Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Existing Lead": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory - Per Phone": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code - Safe Parse & Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Safe Parse & Prep": {
+      "main": [
+        [
+          {
+            "node": "Switch - Category Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Category Router": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Upsert Booking Pending",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet - Upsert Interested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet - Upsert Not Interested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet - Upsert Needs Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet - Upsert Reschedule",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendar - Delete Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback - Unknown Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Upsert Booking Pending": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Calendar - Update Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendar - Create Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Update Assessment": {
+      "main": [
+        [
+          {
+            "node": "Merge - Calendar Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Create Assessment": {
+      "main": [
+        [
+          {
+            "node": "Merge - Calendar Result",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Calendar Result": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Mark Booking Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Mark Booking Confirmed": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Booking Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Upsert Interested": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Interested Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WHAPI - Send Interested Reply": {
+      "main": [
+        [
+          {
+            "node": "Wait - 24h (Interested)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - 24h (Interested)": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Follow-up 1 (Interested)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WHAPI - Follow-up 1 (Interested)": {
+      "main": [
+        [
+          {
+            "node": "Wait - 48h (After Follow-up 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - 48h (After Follow-up 1)": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Flag Manual Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Upsert Not Interested": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Closing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Upsert Needs Info": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Info Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WHAPI - Send Info Reply": {
+      "main": [
+        [
+          {
+            "node": "Wait - 24h (Needs Info)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - 24h (Needs Info)": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Follow-up (Needs Info)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WHAPI - Follow-up (Needs Info)": {
+      "main": [
+        [
+          {
+            "node": "Wait - 48h (After Needs Info F/U)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - 48h (After Needs Info F/U)": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Flag Follow Up Required",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Upsert Reschedule": {
+      "main": [
+        [
+          {
+            "node": "Calendar - Update Reschedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Update Reschedule": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Mark Rescheduled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Mark Rescheduled": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Reschedule Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Delete Assessment": {
+      "main": [
+        [
+          {
+            "node": "Sheet - Mark Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet - Mark Cancelled": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Cancellation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - WHAPI Inbound": {
+      "main": [
+        [
+          {
+            "node": "Normalizer - WHAPI Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback - Unknown Category": {
+      "main": [
+        [
+          {
+            "node": "WHAPI - Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizer - WHAPI Payload": {
+      "main": [
+        [
+          {
+            "node": "IF - Real User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Real User Message": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop - Receipt or Echo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cc4ae36e-e117-4620-904b-9f0054126835",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0652ddaac9cb9ad88fc350a3f42709333097d615ce8e09d4ba122497a18e1d9b"
+  },
+  "id": "hFgRMLeWulcKe72f",
+  "tags": []
+}
