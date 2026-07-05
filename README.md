@@ -20,4 +20,4 @@ Client's real spreadsheet/calendar IDs and business name are swapped for placeho
 6. Update the system prompt in the AI Agent node with your own business info (services, hours, pricing).
 7. Activate the workflow and send it a test WhatsApp message to confirm the flow end-to-end.
 
-8. For guidance on how this workflow works, please refer to the video (./Simulation_video_booking_automation.mp4).
+8. For guidance on how this workflow works, please refer to the video [Simulation Video](./Simulation_video_booking_automation.mp4)
