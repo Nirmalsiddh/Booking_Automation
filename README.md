@@ -19,3 +19,5 @@ Client's real spreadsheet/calendar IDs and business name are swapped for placeho
 5. Grab the webhook URL from the "Webhook - WHAPI Inbound" node and point your WHAPI channel's incoming messages to it.
 6. Update the system prompt in the AI Agent node with your own business info (services, hours, pricing).
 7. Activate the workflow and send it a test WhatsApp message to confirm the flow end-to-end.
+
+8. For guidance on how this workflow works, please refer to the video (./Simulation_video_booking_automation.mp4).
