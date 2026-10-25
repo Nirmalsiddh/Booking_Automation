@@ -1,8 +1,8 @@
 'use strict';
-const {boundary,authenticate}=require('../webhook-boundary');
+const {boundary,authenticate,diagnose}=require('../webhook-boundary');
 const {Inbox}=require('../inbox/sqlite');
 class SecureWebhook {
- constructor(){this.description={displayName:'Authenticated Booking Webhook',name:'secureWebhook',group:['trigger'],version:1,defaults:{name:'Webhook - WHAPI Inbound'},inputs:[],outputs:['main'],credentials:[{name:'httpHeaderAuth',required:true}],webhooks:[{name:'default',httpMethod:'POST',responseMode:'onReceived',path:'={{$parameter.path}}'}],properties:[
+ constructor(){this.description={displayName:'Authenticated Booking Webhook',name:'secureWebhook',group:['trigger'],version:1,defaults:{name:'Webhook - WHAPI Inbound'},inputs:[],outputs:['main'],credentials:[{name:'httpHeaderAuth',required:true}],webhooks:[{name:'default',httpMethod:'POST',responseMode:'onReceived',path:'={{$parameter.path}}'}],properties:[{displayName:'Observability',name:'observability',type:'boolean',default:false},
   {displayName:'Path',name:'path',type:'string',default:'booking-inbox'},
   {displayName:'Trusted Channel',name:'channel',type:'string',default:'fitness-studio'},
   {displayName:'Inbox Database',name:'database',type:'string',default:'/inbox/inbox.sqlite'},
@@ -12,12 +12,14 @@ class SecureWebhook {
   const req=context.getRequestObject(),res=context.getResponseObject();let credentials;
   try{credentials=await context.getCredentials('httpHeaderAuth');}catch{}
   const config={secret:credentials?.name?.toLowerCase()==='x-booking-webhook-key'?credentials.value:undefined,channel:context.getNodeParameter('channel'),maxBytes:context.getNodeParameter('maxBytes')};
+  const enabled=context.getNodeParameter('observability',false)===true;if(enabled)config.onDiagnostic=require('../operations/events').ingressDiagnostic;
   const auth=authenticate(req.headers,config);
-  if(auth){res.statusCode=auth.status;res.end(JSON.stringify({code:auth.code}));return {noWebhookResponse:true};}
+  if(auth){diagnose(config,auth.status,auth.code);res.statusCode=auth.status;res.end(JSON.stringify({code:auth.code}));return {noWebhookResponse:true};}
   let db;
   try{
    if(!req.rawBody)await req.readRawBody();
    db=new Inbox(context.getNodeParameter('database'));
+   if(enabled)require('../operations/runtime').attach(db);
    const result=boundary(req.rawBody,req.headers,config,db);
    res.statusCode=result.status;res.end(JSON.stringify({code:result.code,accepted:result.items.length,rejected:result.rejected||0,ignored:result.ignored||0}));
    return {noWebhookResponse:true,workflowData:[result.items.map(json=>({json}))]};

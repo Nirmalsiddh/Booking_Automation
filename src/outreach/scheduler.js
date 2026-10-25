@@ -29,35 +29,35 @@ class Scheduler {
   this.s.db.prepare('INSERT INTO outreach_sequences VALUES(?,?,?,?,?,?,?)').run(seq.id,customer,generation,seq.rule_version,seq.booking_snapshot,'active',now);
   const id=this.addJob(seq.id,'promotion',1,now+this.rules.delayMinutes*60000,now);return {outcome:'scheduled',sequence:seq.id,id};
  });}
- addJob(sequence,kind,attempt,due,now){const id=hash([sequence,kind,attempt]);this.s.db.prepare("INSERT OR IGNORE INTO outreach_jobs(id,sequence,kind,attempt,due,status,created,updated) VALUES(?,?,?,?,?,'pending',?,?)").run(id,sequence,kind,attempt,due,now,now);return id;}
- claim(){const now=this.now();return this.s.tx(()=>{const job=this.s.db.prepare("SELECT * FROM outreach_jobs WHERE status='pending' AND due<=? ORDER BY due,id LIMIT 1").get(now);if(!job)return null;const owner=randomUUID();this.s.db.prepare("UPDATE outreach_jobs SET status='claimed',owner=?,updated=? WHERE id=? AND status='pending'").run(owner,now,job.id);return {...job,status:'claimed',owner};});}
+ addJob(sequence,kind,attempt,due,now){const id=hash([sequence,kind,attempt]);this.s.db.prepare("INSERT OR IGNORE INTO outreach_jobs(id,sequence,kind,attempt,due,status,created,updated) VALUES(?,?,?,?,?,'pending',?,?)").run(id,sequence,kind,attempt,due,now,now);this.s.audit('followup_job',id,'pending');return id;}
+ claim(){const now=this.now();return this.s.tx(()=>{const job=this.s.db.prepare("SELECT * FROM outreach_jobs WHERE status='pending' AND due<=? ORDER BY due,id LIMIT 1").get(now);if(!job)return null;const owner=randomUUID();this.s.db.prepare("UPDATE outreach_jobs SET status='claimed',owner=?,updated=? WHERE id=? AND status='pending'").run(owner,now,job.id);this.s.audit('followup_job',job.id,'claimed');if(this.s.observer&&process.env.BOOKING_RECOVERY_WORKER)require('../recovery/worker').bind(this.s.db,this.s.observer.link('followup_job',job.id),owner);return {...job,status:'claimed',owner};});}
  permitted(now){const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:this.rules.timezone,weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).map(x=>[x.type,x.value]));return this.rules.allowedWeekdays.includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(p.weekday))&&`${p.hour}:${p.minute}`>=this.rules.sendingHours.start&&`${p.hour}:${p.minute}`<this.rules.sendingHours.end;}
  nextOpening(now){let n=Math.floor(now/60000)*60000+60000;for(let i=0;i<8*1440;i++,n+=60000)if(this.permitted(n))return n;throw Error('NO_ALLOWED_SENDING_TIME');}
  authorize(job){const now=this.now();return this.s.tx(()=>{
   const current=this.s.db.prepare('SELECT * FROM outreach_jobs WHERE id=?').get(job.id);if(current?.status!=='claimed'||current.owner!==job.owner)return {outcome:'not_owned'};
   const seq=this.s.db.prepare('SELECT * FROM outreach_sequences WHERE id=?').get(current.sequence),reason=this.eligible(seq);
-  if(reason){this.s.db.prepare("UPDATE outreach_jobs SET status='suppressed',reason=?,updated=? WHERE id=?").run(reason,now,job.id);return {outcome:'suppressed',reason};}
+  if(reason){this.s.db.prepare("UPDATE outreach_jobs SET status='suppressed',reason=?,updated=? WHERE id=?").run(reason,now,job.id);this.s.audit('followup_job',job.id,'suppressed','BUSINESS_RULE_BLOCKED');return {outcome:'suppressed',reason};}
   if(current.kind==='handoff'){
    const h=this.s.handoff(seq.customer);this.s.updateHandoff({id:'job:'+job.id,customer:seq.customer,state:'Requested',reason:'eligible_followup_exhausted',actor:'scheduler',expectedVersion:h?.version??0,sequence:seq.id},now);
-   this.s.db.prepare("UPDATE outreach_jobs SET status='completed',updated=? WHERE id=?").run(now,job.id);this.s.db.prepare("UPDATE outreach_sequences SET status='completed' WHERE id=?").run(seq.id);return {outcome:'handoff_requested'};
+   this.s.db.prepare("UPDATE outreach_jobs SET status='completed',updated=? WHERE id=?").run(now,job.id);this.s.db.prepare("UPDATE outreach_sequences SET status='completed' WHERE id=?").run(seq.id);this.s.audit('followup_job',job.id,'completed');return {outcome:'handoff_requested'};
   }
-  if(current.attempt>this.rules.maxAttempts){this.s.db.prepare("UPDATE outreach_jobs SET status='suppressed',reason='max_attempts',updated=? WHERE id=?").run(now,job.id);return {outcome:'suppressed',reason:'max_attempts'};}
-  if(!this.permitted(now)){this.s.db.prepare("UPDATE outreach_jobs SET status='pending',owner=NULL,due=?,reason='sending_hours',updated=? WHERE id=?").run(this.nextOpening(now),now,job.id);return {outcome:'deferred'};}
+  if(current.attempt>this.rules.maxAttempts){this.s.db.prepare("UPDATE outreach_jobs SET status='suppressed',reason='max_attempts',updated=? WHERE id=?").run(now,job.id);this.s.audit('followup_job',job.id,'suppressed','BUSINESS_RULE_BLOCKED');return {outcome:'suppressed',reason:'max_attempts'};}
+  if(!this.permitted(now)){this.s.db.prepare("UPDATE outreach_jobs SET status='pending',owner=NULL,due=?,reason='sending_hours',updated=? WHERE id=?").run(this.nextOpening(now),now,job.id);this.s.audit('followup_job',job.id,'pending','SENDING_HOURS');return {outcome:'deferred'};}
   const c=this.s.contact(seq.customer);
   // This transaction is the dispatch authorization boundary. A committed revocation
   // or inbound before it suppresses the send. After it, the request is in flight and
   // must never be replayed merely because a worker or provider response is lost.
   this.s.db.prepare("INSERT INTO outreach_notifications VALUES(?,'promotional','dispatched',NULL,?,NULL)").run(job.id,now);
   this.s.db.prepare("UPDATE outreach_jobs SET status='dispatched',updated=? WHERE id=?").run(now,job.id);
-  return {outcome:'dispatch',context:{id:job.id,recipient:c.recipient,body:this.rules.message,category:'promotional'}};
+  this.s.audit('followup_job',job.id,'dispatched');this.s.audit('followup_notification',job.id,'dispatched');return {outcome:'dispatch',context:{id:job.id,recipient:c.recipient,body:this.rules.message,category:'promotional'}};
  });}
- async process(job){const auth=this.authorize(job);if(auth.outcome!=='dispatch')return auth;let response;try{response=await this.provider.notify(auth.context);}catch{}
+ async process(job){const auth=this.authorize(job);if(auth.outcome!=='dispatch')return auth;let response;try{response=await this.s.observe('provider_outbound',['promotion',job.id],()=>this.provider.notify(auth.context));}catch(error){if(error?.code==='OPS_AUDIT_FAILED')throw error;}
   const result=notification(auth.context,response),now=this.now();
   this.s.tx(()=>{
    const jobNow=this.s.db.prepare('SELECT * FROM outreach_jobs WHERE id=?').get(job.id);if(jobNow.status!=='dispatched')throw Error('OUTREACH_NOT_DISPATCHED');
    const status=result.status==='succeeded'?'accepted':result.status;
    this.s.db.prepare('UPDATE outreach_notifications SET status=?,receipt=?,finished=? WHERE id=?').run(status,result.receipt??null,now,job.id);
-   this.s.db.prepare('UPDATE outreach_jobs SET status=?,updated=? WHERE id=?').run(status,now,job.id);
+   this.s.db.prepare('UPDATE outreach_jobs SET status=?,updated=? WHERE id=?').run(status,now,job.id);this.s.audit('followup_job',job.id,status,result.status==='uncertain'?'EXTERNAL_OUTCOME_UNCERTAIN':result.status==='failed'?'PROVIDER_REJECTED_NO_EFFECT':'NONE');this.s.audit('followup_notification',job.id,status,result.status==='uncertain'?'EXTERNAL_OUTCOME_UNCERTAIN':result.status==='failed'?'PROVIDER_REJECTED_NO_EFFECT':'NONE');
    if(status==='accepted'){
     const seq=this.s.db.prepare('SELECT * FROM outreach_sequences WHERE id=?').get(job.sequence);
     if(!this.eligible(seq)){const more=job.attempt<this.rules.maxAttempts;this.addJob(seq.id,more?'promotion':'handoff',more?job.attempt+1:job.attempt,now+(more?this.rules.delayMinutes:this.rules.handoffDelayMinutes)*60000,now);}

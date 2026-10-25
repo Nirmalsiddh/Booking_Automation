@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mode": "isolated-mock-only",
+  "maxTransportAttempts": 3,
+  "backoffMs": [1000, 5000],
+  "automaticWorker": false
+}

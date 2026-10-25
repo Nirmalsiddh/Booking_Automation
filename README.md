@@ -164,7 +164,15 @@ M6 acceptance is expected to return 0. Live provider behavior is outside these r
 
 ## Roadmap
 
-Completed work ends at M6. Proposed next work is M7 observability and bounded recovery,
-followed by M8 portfolio/demo packaging, subject to separate scope approval. Broader
-business configuration and multi-tenant operation remain future directions. No M7 or M8
-implementation, deployment, publication or live activation is included here.
+M1–M6 and the inactive M7 Stage 1 candidate remain preserved. M7 now includes
+operational storage, optional instrumentation, read-only diagnostics and restricted
+operator-controlled recovery in the verified mock environment. The expanded native
+suite passes 78/78 scenarios and 552/552 assertions; live administration is unsupported.
+
+See the [Stage 2 architecture and reproduction guide](docs/milestone7-stage2.md) and
+[verification report](docs/milestone7-stage2-results.md). The
+[Stage 1 checkpoint guide](docs/milestone7-stage1.md) documents the earlier scope.
+
+M8 portfolio/demo packaging remains unimplemented and requires separate approval.
+Broader business configuration and multi-tenant operation remain future directions.
+All workflow candidates remain inactive. No deployment or live activation is included here.

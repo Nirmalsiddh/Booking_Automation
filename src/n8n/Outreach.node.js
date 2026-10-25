@@ -2,7 +2,7 @@
 const {OutreachStore,hash}=require('../outreach/store');
 const {Scheduler}=require('../outreach/scheduler');
 class Outreach {
- constructor(){this.description={displayName:'State-aware Outreach',name:'outreach',group:['transform'],version:1,defaults:{name:'State-aware Outreach'},inputs:['main'],outputs:['main'],credentials:[{name:'httpHeaderAuth',required:false}],properties:[
+ constructor(){this.description={displayName:'State-aware Outreach',name:'outreach',group:['transform'],version:1,defaults:{name:'State-aware Outreach'},inputs:['main'],outputs:['main'],credentials:[{name:'httpHeaderAuth',required:false}],properties:[{displayName:'Observability',name:'observability',type:'boolean',default:false},
   {displayName:'Action',name:'action',type:'string',default:'tick'},
   {displayName:'Database',name:'database',type:'string',default:'/inbox/inbox.sqlite'},
   {displayName:'Inbox Database',name:'inboxDatabase',type:'string',default:'/inbox/inbox.sqlite'},
@@ -17,8 +17,9 @@ class Outreach {
  async execute(){const out=[];for(let i=0;i<this.getInputData().length;i++){
   const store=new OutreachStore(this.getNodeParameter('database',i));
   try{
+   if(this.getNodeParameter('observability',i,false))require('../operations/runtime').attach(store,{message:this.getNodeParameter('claim',i)});
    const action=this.getNodeParameter('action',i),adapter=this.getNodeParameter('adapter',i);let clock=Date.now,provider={notify:async()=>{throw Error('OUTREACH_ADAPTER_UNCONFIGURED');}};
-   if(adapter==='isolated-mock'&&process.env.HARNESS_STATE_PATH){const state=JSON.parse(require('fs').readFileSync(process.env.HARNESS_STATE_PATH));clock=()=>state.clock;provider=new (require('../OutreachProvider').OutreachProvider)(store,state.current.outreachFaults||{});}
+   if(adapter==='isolated-mock'&&process.env.HARNESS_STATE_PATH){const state=JSON.parse(require('fs').readFileSync(process.env.HARNESS_STATE_PATH));clock=()=>state.clock;provider=new (require('../OutreachProvider').OutreachProvider)(store,state.current.outreachFaults||{});if(process.env.BOOKING_RECOVERY_WORKER)provider=require('../recovery/evidence').wrap(provider,store,state.current.outreachFaults||{},{promotion:true});}
    if(adapter==='http'){provider={notify:async c=>{const r=await this.helpers.httpRequestWithAuthentication.call(this,'httpHeaderAuth',{method:'POST',url:'https://gate.whapi.cloud/messages/text',body:{to:c.recipient,body:c.body},json:true,returnFullResponse:true,ignoreHttpStatusErrors:true,timeout:15000});if(r.statusCode>=200&&r.statusCode<300&&r.body?.sent===true&&typeof r.body.message?.id==='string'&&r.body.message?.to===c.recipient)return {requestId:c.id,accepted:true,messageId:r.body.message.id,recipient:c.recipient};return {requestId:c.id};}};}
    const scheduler=new Scheduler(store,provider,this.getNodeParameter('rules',i),clock),input=this.getInputData()[i].json;
    let result;

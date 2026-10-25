@@ -1,0 +1,7 @@
+'use strict';
+const fs=require('node:fs'),{timingSafeEqual}=require('node:crypto');const {RecoveryError}=require('./catalog');
+function identity(pid=process.pid){const text=fs.readFileSync('/proc/'+pid+'/stat','utf8'),v=text.slice(text.lastIndexOf(')')+2).split(' ');return {pid,start:v[19],group:Number(v[2]),state:v[0],boot:fs.readFileSync('/proc/sys/kernel/random/boot_id','utf8').trim()};}
+function current(db){const id=process.env.BOOKING_RECOVERY_WORKER,secret=process.env.BOOKING_WORKER_SECRET;const row=id?db.prepare('SELECT * FROM ops_recovery_workers WHERE id=?').get(id):null;const me=identity();if(!row||row.status!=='running'||typeof secret!=='string'||secret.length!==row.secret.length||!timingSafeEqual(Buffer.from(secret),Buffer.from(row.secret))||row.pid!==me.pid||row.start!==me.start||row.boot!==me.boot)throw new RecoveryError('TRUSTED_WORKER_REQUIRED');return row.id;}
+function bind(db,ref,owner){require('./isolation').isolated(db.prepare('PRAGMA database_list').all().find(x=>x.name==='main').file);if(!db.isTransaction)throw new RecoveryError('RECOVERY_FAILED');const id=current(db);db.prepare('INSERT OR IGNORE INTO ops_recovery_bindings VALUES(?,?,?)').run(id,ref,owner);return id;}
+function joined(db,ref,owner){return db.prepare("SELECT w.id FROM ops_recovery_workers w JOIN ops_recovery_bindings b ON b.worker=w.id WHERE b.target_ref=? AND b.owner=? AND w.status='joined'").get(ref,owner)?.id||null;}
+module.exports={identity,current,bind,joined};

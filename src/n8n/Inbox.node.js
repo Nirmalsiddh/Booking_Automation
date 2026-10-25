@@ -2,6 +2,7 @@
 const {Inbox}=require('../inbox/sqlite');
 class InboxNode {
  constructor(){this.description={displayName:'Durable Inbox',name:'inbox',group:['transform'],version:1,defaults:{name:'Durable Inbox'},inputs:['main'],outputs:['main','main'],properties:[
+  {displayName:'Observability',name:'observability',type:'boolean',default:false},
   {displayName:'Database Path',name:'database',type:'string',default:'/inbox/inbox.sqlite'},
   {displayName:'Action',name:'action',type:'string',default:'claim'},
   {displayName:'Claim',name:'claim',type:'json',default:{}},
@@ -11,6 +12,7 @@ class InboxNode {
   for(let i=0;i<this.getInputData().length;i++){
    const item=this.getInputData()[i],action=this.getNodeParameter('action',i),db=new Inbox(this.getNodeParameter('database',i));
    try{
+    if(this.getNodeParameter('observability',i,false))require('../operations/runtime').attach(db,{message:action==='claim'?item.json.envelope:this.getNodeParameter('claim',i)});
     if(action==='claim'){
      const result=db.claim(item.json.envelope);
      if(result.status==='claimed')accepted.push({json:{...item.json,_inbox:result.token},pairedItem:{item:i}});

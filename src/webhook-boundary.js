@@ -10,7 +10,7 @@ function authenticate(headers,config){
  if(!crypto.timingSafeEqual(hash(expected),hash(actual)))return {status:401,code:'unauthorized'};
  return null;
 }
-function boundary(raw,headers,settings,inbox){
+function evaluateBoundary(raw,headers,settings,inbox){
  const config={...DEFAULTS,...settings};const auth=authenticate(headers,config);if(auth)return {...auth,items:[]};
  if(!validId(config.provider)||!validId(config.channel)||!Number.isInteger(config.maxBytes)||config.maxBytes<1||!Number.isInteger(config.maxMessages)||config.maxMessages<1)return {status:503,code:'invalid_configuration',items:[]};
  if(typeof headers['content-type']!=='string'||!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(headers['content-type']))return {status:415,code:'unsupported_content_type',items:[]};
@@ -39,10 +39,12 @@ function boundary(raw,headers,settings,inbox){
  }
  return {status:items.length?202:conflicts?409:rejected?422:200,code:items.length?'accepted':conflicts?'identifier_conflict':rejected?'invalid_events':'ignored_events',items,ignored,rejected,conflicts};
 }
+function diagnose(config,status,code){if(typeof config?.onDiagnostic!=='function'||status<400)return;const safe=status===401||code==='authentication_unconfigured'?'AUTH_REJECTED':status===409?'IDENTIFIER_CONFLICT':'INPUT_REJECTED';try{config.onDiagnostic(safe);}catch{}}
+function boundary(raw,headers,settings,inbox){const result=evaluateBoundary(raw,headers,settings,inbox);diagnose(settings,result.status,result.code);return result;}
 // The same bounded HTTP boundary is used by isolated tests and can front a private dispatcher.
 function handler(config,inbox,dispatch){return async(req,res)=>{
  const auth=authenticate(req.headers,config);
- if(auth){res.writeHead(auth.status);res.end(JSON.stringify({code:auth.code}));return;}
+ if(auth){diagnose(config,auth.status,auth.code);res.writeHead(auth.status);res.end(JSON.stringify({code:auth.code}));return;}
  if(req.method!=='POST'){res.writeHead(405);res.end();return;}
  const limit=config.maxBytes||DEFAULTS.maxBytes;let size=0;const chunks=[];
  try{
@@ -53,4 +55,4 @@ function handler(config,inbox,dispatch){return async(req,res)=>{
   res.writeHead(result.status,{'content-type':'application/json'});res.end(JSON.stringify({code:result.code,accepted:result.items.length,ignored:result.ignored||0,rejected:result.rejected||0}));
  }catch{res.writeHead(503);res.end('{"code":"processing_unavailable"}');}
 };}
-module.exports={boundary,authenticate,handler,DEFAULTS};
+module.exports={boundary,authenticate,handler,DEFAULTS,diagnose};

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mode": "observe_only",
+  "recoveryExecutionEnabled": false,
+  "diagnosticLimit": 100,
+  "automaticRetentionDeletion": false
+}
