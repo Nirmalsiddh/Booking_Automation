@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "timezone": "Asia/Dubai",
+  "delayMinutes": 1440,
+  "maxAttempts": 1,
+  "sendingHours": {"start": "09:00", "end": "18:00"},
+  "allowedWeekdays": [0, 1, 2, 3, 4, 5, 6],
+  "eligibleEngagement": ["Interested", "Needs Info"],
+  "handoffDelayMinutes": 2880,
+  "requireExplicitOptIn": true,
+  "suppressOptOut": true,
+  "grantCommand": "OPT IN FOLLOWUPS",
+  "revokeCommands": ["STOP", "UNSUBSCRIBE", "OPT OUT"],
+  "message": "Would you like help with your assessment inquiry? Reply if you would like assistance. Reply STOP to opt out of promotional follow-ups."
+}

@@ -1,0 +1,12 @@
+{
+  "timezone": "Asia/Dubai",
+  "openingTime": "06:00",
+  "closingTime": "23:00",
+  "durationMinutes": 60,
+  "minimumNoticeMinutes": 0,
+  "maximumAdvanceDays": 1825,
+  "allowedWeekdays": [0, 1, 2, 3, 4, 5, 6],
+  "maxMessageLength": 2000,
+  "maxAIBytes": 12000,
+  "requiredBookingFields": []
+}
